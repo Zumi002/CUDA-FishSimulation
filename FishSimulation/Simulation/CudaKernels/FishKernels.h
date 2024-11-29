@@ -7,6 +7,7 @@
 #include <curand_kernel.h>
 #include "../SimulationDataStructures/FishContainers.h"
 #include "../SimulationDataStructures/MousePos.h"
+#include "../SimulationDataStructures/Speed2D.h"
 
 #define RANDSEED 124
 
@@ -31,3 +32,5 @@ __global__ void setFishTypeKernel(FishData fd, short type, int count, int offset
 __global__ void updatePositionKernel(FishData fd, int fishCount);
 
 __device__ float clamp(float value, float minVal, float maxVal);
+
+__device__ Speed2D capSpeed(Speed2D speed2d, float minSpeed, float maxSpeed);

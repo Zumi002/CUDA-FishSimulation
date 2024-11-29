@@ -136,6 +136,7 @@
     <ClInclude Include="Simulation\FishSimulation.h" />
     <ClInclude Include="Simulation\SimulationDataStructures\FishContainers.h" />
     <ClInclude Include="Simulation\SimulationDataStructures\MousePos.h" />
+    <ClInclude Include="Simulation\SimulationDataStructures\Speed2D.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="OpenGLUtils\Shaders\fragmentShader.glsl" />
