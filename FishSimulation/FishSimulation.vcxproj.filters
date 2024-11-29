@@ -98,6 +98,7 @@
     <ClInclude Include="Simulation\FishSimulation.h" />
     <ClInclude Include="Simulation\SimulationDataStructures\FishContainers.h" />
     <ClInclude Include="Simulation\CudaKernels\FishKernels.h" />
+    <ClInclude Include="Simulation\SimulationDataStructures\MousePos.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="OpenGLUtils\Shaders\fragmentShader.glsl" />

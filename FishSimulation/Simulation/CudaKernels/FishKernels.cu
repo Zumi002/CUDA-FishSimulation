@@ -32,7 +32,7 @@ __global__ void setFishTypeKernel(FishData fd, short type, int count, int offset
 	fd.type[idx + offset] = type;
 }
 
-__global__ void simulateStepKernel(FishData fd, FishTypes ft, int fishCount)
+__global__ void simulateStepKernel(FishData fd, FishTypes ft, int fishCount, MousePos mousePos)
 {
 	int idx = threadIdx.x + blockDim.x * blockIdx.x;
 
@@ -117,6 +117,20 @@ __global__ void simulateStepKernel(FishData fd, FishTypes ft, int fishCount)
 		vy += ft.obstacleAvoidanceFactor[type];
 	if (posy > 95.f)
 		vy -= ft.obstacleAvoidanceFactor[type];
+
+	if (mousePos.avoid)
+	{
+		float mdx = posx - mousePos.x;
+		float mdy = posy - mousePos.y;
+
+		float dist = mdy * mdy + mdx * mdx;
+
+		if (dist < 25)
+		{
+			vx += mdx * ft.obstacleAvoidanceFactor[type];
+			vy += mdy * ft.obstacleAvoidanceFactor[type];
+		}
+	}
 
 	//if (idx==70)
 	//	printf("%f %f %f %f %d\n", posx, posy, vx, vy, idx);

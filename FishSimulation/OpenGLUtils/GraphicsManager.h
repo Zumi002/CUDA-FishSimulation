@@ -43,6 +43,7 @@ class GraphicsManager
     FishSimulation* simulation;
     FishVBOs* vbos;
 
+    MousePos* mousePos;
 	
 	void DrawFrame();
 	void LoadShaders(const std::string vertexShaderFileName, const std::string fragmentShaderFileName);

@@ -132,6 +132,11 @@ FishTypes* FishSimulation::getFishTypes()
 	return fishTypes;
 }
 
+MousePos* FishSimulation::getMousePos()
+{
+	return mousePos;
+}
+
 void FishSimulation::randomizePos(int count, int offset)
 {
 	int blocks = calcBlocksNeeded(count, 512);
@@ -144,7 +149,7 @@ void FishSimulation::simulationStep()
 {
 	int blocks = calcBlocksNeeded(fishCount, 512);
 	syncFishTypes();
-	simulateStepKernel << <blocks, 512 >> > (fishData, devfishTypes, fishCount);
+	simulateStepKernel << <blocks, 512 >> > (fishData, devfishTypes, fishCount, *mousePos);
 	cudaDeviceSynchronize();
 	updatePositionKernel << <blocks, 512 >> > (fishData, fishCount);
 	cudaDeviceSynchronize();

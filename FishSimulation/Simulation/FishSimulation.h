@@ -7,6 +7,7 @@
 
 #include "SimulationDataStructures/FishContainers.h"
 #include "CudaKernels/FishKernels.h"
+#include "SimulationDataStructures/MousePos.h"
 
 #define MAX_FISH_COUNT 100000
 
@@ -27,6 +28,9 @@ private:
 	FishTypes devfishTypes;
 	FishVBOs* vbos;
 
+	MousePos* mousePos = new MousePos(0,0,false);
+
+
 	void mapVBOs();
 	void allocFishTypes();
 	void syncFishTypes();
@@ -42,5 +46,6 @@ public:
 	void addFish(int amount, short type);
 	FishTypes* getFishTypes();
 	int getFishTypeCount();
+	MousePos* getMousePos();
 };
 

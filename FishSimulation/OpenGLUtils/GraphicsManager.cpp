@@ -45,6 +45,7 @@ void GraphicsManager::CreateGraphicWindow(const std::string windowName)
 	vbos = new FishVBOs();
 	ConfigureVAO(simulation->getMaxFishCount());
 	simulation->setUpSimulation(vbos);
+	mousePos = simulation->getMousePos();
 
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
@@ -61,11 +62,9 @@ void GraphicsManager::DrawFrame()
 	glDisable(GL_DEPTH_TEST);
 	glDisable(GL_CULL_FACE);
 
-	int w, h;
+	SDL_GL_GetDrawableSize(graphicsWindow, &screenWidth, &screenHeight);
 
-	SDL_GL_GetDrawableSize(graphicsWindow, &w, &h);
-
-	glViewport(0, 0, w, h);
+	glViewport(0, 0, screenWidth, screenHeight);
 	glClearColor(0.086f, 0.086f, 0.113f, 1.f);
 	glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
@@ -157,6 +156,20 @@ void GraphicsManager::Input()
 		}
 	}
 
+	int x = 0;
+	int y = 0;
+	Uint32 mouseEvent = SDL_GetMouseState(&x, &y);
+	if (mouseEvent & SDL_BUTTON(1))
+	{
+		mousePos->avoid = true;
+		mousePos->x = (float)x / screenWidth * 200 - 100;
+		mousePos->y = -(float)y / screenHeight*200+100;
+	}
+	else
+	{
+		mousePos->avoid = false;
+	}
+
 }
 
 void GraphicsManager::renderImGUI()
@@ -210,12 +223,12 @@ void GraphicsManager::renderImGUI()
 	if (selectedFishType >= 0 && selectedFishType < simulation->getFishTypeCount()) {
 		ImGui::Text("Adjust Parameters for Fish Type %d", selectedFishType);
 
-		ImGui::SliderFloat("Align Range", &fishTypes->alignRange[selectedFishType], 1.0f, 10.0f);
-		ImGui::SliderFloat("Coherent Range", &fishTypes->coheherentRange[selectedFishType], 1.0f, 10.0f);
-		ImGui::SliderFloat("Separate Range", &fishTypes->separateRange[selectedFishType], 1.0f, 10.0f);
+		ImGui::SliderFloat("Align Range", &fishTypes->alignRange[selectedFishType], 0.5f, 10.0f);
+		ImGui::SliderFloat("Coherent Range", &fishTypes->coheherentRange[selectedFishType], 0.5f, 10.0f);
+		ImGui::SliderFloat("Separate Range", &fishTypes->separateRange[selectedFishType], 0.5f, 10.0f);
 
 		ImGui::SliderFloat("Align Factor", &fishTypes->alignFactor[selectedFishType], 0.0f, 1.0f);
-		ImGui::SliderFloat("Coherent Factor", &fishTypes->coherentFactor[selectedFishType], 0.0f, 1.0f);
+		ImGui::SliderFloat("Coherent Factor", &fishTypes->coherentFactor[selectedFishType], 0.0f, 0.1f);
 		ImGui::SliderFloat("Separation Factor", &fishTypes->separationFactor[selectedFishType], 0.0f, 1.0f);
 
 		ImGui::SliderFloat("Obstacle Avoid Factor", &fishTypes->obstacleAvoidanceFactor[selectedFishType], 0.0f, 1.0f);

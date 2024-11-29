@@ -5,8 +5,8 @@
 #include <stdlib.h>
 #include <curand.h>
 #include <curand_kernel.h>
-#include"../SimulationDataStructures/FishContainers.h"
-
+#include "../SimulationDataStructures/FishContainers.h"
+#include "../SimulationDataStructures/MousePos.h"
 
 #define RANDSEED 124
 
@@ -24,7 +24,7 @@ inline void gpuAssert(cudaError_t code, const char* file, int line, bool abort =
 
 __global__ void randomizePositionKernel(FishData fd, int count, int offset);
 
-__global__ void simulateStepKernel(FishData fd, FishTypes ft, int fishCount);//pewnie jakis grid object
+__global__ void simulateStepKernel(FishData fd, FishTypes ft, int fishCount, MousePos pos);//pewnie jakis grid object
 
 __global__ void setFishTypeKernel(FishData fd, short type, int count, int offset);
 

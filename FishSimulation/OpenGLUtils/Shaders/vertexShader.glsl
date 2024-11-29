@@ -14,7 +14,7 @@ void main() {
     mat2 rotation = mat2(c, -s, s, c);
 
     vec2 rotatedPos = rotation * vertexPosition;
-    vec2 finalPos = rotatedPos + vec2(posX, posY);  // Scale factor 0.05 for size
+    vec2 finalPos = rotatedPos + vec2(posX, posY); 
 
     gl_Position = projection * vec4(finalPos, 0.0, 1.0);
 }
