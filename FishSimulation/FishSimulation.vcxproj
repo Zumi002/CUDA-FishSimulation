@@ -71,6 +71,9 @@
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(CudaToolkitBinDir)/crt</AdditionalLibraryDirectories>
       <AdditionalOptions>-lSDL2.lib -lSDL2mian.lib %(AdditionalOptions)</AdditionalOptions>
     </CudaLink>
+    <PostBuildEvent>
+      <Command>xcopy /Y /F "$(ProjectDir)/Libraries/SDL2.dll" "$(OutDir)"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -93,6 +96,9 @@
     <CudaLink>
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </CudaLink>
+    <PostBuildEvent>
+      <Command>xcopy /Y /F "$(ProjectDir)/Libraries/SDL2.dll" "$(OutDir)"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <CudaCompile Include="main.cpp" />
