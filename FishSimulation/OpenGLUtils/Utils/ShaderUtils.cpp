@@ -1,7 +1,7 @@
 #include "ShaderUtils.h"
 
 
-GLuint ShaderManager::CompileShader(GLuint type, const std::string& source)
+GLuint ShaderManager::compileShader(GLuint type, const std::string& source)
 {
     GLuint shaderObject;
     if (type == GL_VERTEX_SHADER)
@@ -29,7 +29,7 @@ GLuint ShaderManager::CompileShader(GLuint type, const std::string& source)
     return shaderObject;
 }
 
-std::string ShaderManager::LoadShaderFromFile(const std::string& fileName)
+std::string ShaderManager::loadShaderFromFile(const std::string& fileName)
 {
     std::ifstream inputStream(fileName.c_str(), std::ios::in);
     if (!inputStream.is_open())
@@ -47,13 +47,13 @@ std::string ShaderManager::LoadShaderFromFile(const std::string& fileName)
 
 ShaderManager::ShaderManager(const std::string& vertexShaderFileName, const std::string& fragmentShaderFileName)
 {
-    std::string vertexShaderSource = LoadShaderFromFile(vertexShaderFileName);
-    std::string fragmentShaderSource = LoadShaderFromFile(fragmentShaderFileName);
+    std::string vertexShaderSource = loadShaderFromFile(vertexShaderFileName);
+    std::string fragmentShaderSource = loadShaderFromFile(fragmentShaderFileName);
 
     programObject = glCreateProgram();
 
-    vertexShader = CompileShader(GL_VERTEX_SHADER, vertexShaderSource);
-    fragmentShader = CompileShader(GL_FRAGMENT_SHADER, fragmentShaderSource);
+    vertexShader = compileShader(GL_VERTEX_SHADER, vertexShaderSource);
+    fragmentShader = compileShader(GL_FRAGMENT_SHADER, fragmentShaderSource);
 
     glAttachShader(programObject, vertexShader);
     glAttachShader(programObject, fragmentShader);
@@ -62,17 +62,32 @@ ShaderManager::ShaderManager(const std::string& vertexShaderFileName, const std:
     glValidateProgram(programObject);
 }
 
-GLuint ShaderManager::GetProgramObject()
+ShaderManager::ShaderManager()
+{
+    programObject = glCreateProgram();
+
+    vertexShader = compileShader(GL_VERTEX_SHADER, defaultVertexShader);
+    fragmentShader = compileShader(GL_FRAGMENT_SHADER, defaultFragmentShader);
+
+    glAttachShader(programObject, vertexShader);
+    glAttachShader(programObject, fragmentShader);
+    glLinkProgram(programObject);
+
+    glValidateProgram(programObject);
+}
+
+GLuint ShaderManager::getProgramObject()
 {
     return programObject;
 }
 
-GLuint ShaderManager::GetVertexShader()
+GLuint ShaderManager::getVertexShader()
 {
     return vertexShader;
 }
 
-GLuint ShaderManager::GetFragmentShader()
+GLuint ShaderManager::getFragmentShader()
 {
     return fragmentShader;
 }
+

@@ -19,35 +19,14 @@
 
 
 
-void SetUpImGUI()
-{
-    // Setup Dear ImGui context
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO();
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls    
-
-    // Setup Platform/Renderer backends
-    //ImGui_ImplSDL2_InitForOpenGL(gGraphicsWindow, gOpenGLContext);
-    ImGui_ImplOpenGL3_Init();
-}
-
-void CleanUp()
-{
-    ImGui_ImplOpenGL3_Shutdown();
-    ImGui_ImplSDL2_Shutdown();
-    ImGui::DestroyContext();
-    //SDL_DestroyWindow(gGraphicsWindow);
-    SDL_Quit();
-}
-
 int main(int argc, char* argv[])
 {
     GraphicsManager* gm = new GraphicsManager();
 
-    gm->CreateGraphicWindow("Fish Simulation");
-    gm->Run();
+    gm->createGraphicWindow("Fish Simulation");
+    gm->run();
+
+    delete gm;
 
     return 0;
 }

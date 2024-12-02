@@ -1,7 +1,7 @@
 #include "FishKernels.h"
 
 
-__global__ void randomizePositionKernel(FishData fd, int count, int offset)
+__global__ void randomizePositionKernel(FishData fd, FishTypes ft, int count, int offset)
 {
 	int idx = threadIdx.x + blockDim.x * blockIdx.x;
 	if (idx >= count)
@@ -13,13 +13,21 @@ __global__ void randomizePositionKernel(FishData fd, int count, int offset)
 
 	float randomY = curand_uniform(&state);
 
+	float randomVX = curand_uniform(&state) * 2 - 1;
+	float randomVY = curand_uniform(&state) * 2 - 1;
+
 	//scale values
-	randomX = randomX * 200 - 100;
-	randomY = randomY * 200 - 100;
+	randomX = randomX * 2000 - 1000;
+	randomY = randomY * 2000 - 1000;
 
 	//apply value
 	fd.devPosX[idx + offset] = randomX;
 	fd.devPosY[idx + offset] = randomY;
+	fd.devVelX[idx + offset] = randomVX;
+	fd.devVelY[idx + offset] = randomVY;
+
+	short type = fd.type[idx + offset];
+	fd.devColorRGBA[idx+offset] = ft.color[type];
 }
 
 __global__ void setFishTypeKernel(FishData fd, short type, int count, int offset)
@@ -43,24 +51,27 @@ __global__ void simulateStepKernel(FishData fd, FishTypes ft, int fishCount, Mou
 	float posy = fd.devPosY[idx];
 	float vx = fd.devVelX[idx];
 	float vy = fd.devVelY[idx];
-
 	short type = fd.type[idx];
-
-	float closedx = 0;
-	float closedy = 0;
 	float sepRangesq = ft.separateRange[type] * ft.separateRange[type];
-	float visionSq = ft.alignRange[type] * ft.alignRange[type];
-	float sepFactor = ft.separationFactor[type];
+	float alignSq = ft.alignRange[type] * ft.alignRange[type];
+	float cohSq = ft.coherentRange[type] * ft.coherentRange[type];
+	float sepFactor = ft.separateFactor[type];
 	float cohFactor = ft.coherentFactor[type];
-	float aligFactor = ft.alignFactor[type];
+	float alignFactor = ft.alignFactor[type];
+	float obstAvFactor = ft.obstacleAvoidanceFactor[type];
 
-	float xvelavg = 0;
-	float yvelavg = 0;
+	Speed2D alignSpeed = Speed2D(),
+		cohSpeed = Speed2D(),
+		sepSpeed = Speed2D(),
+		obstAvSpeed = Speed2D();
+
 	float yposavg = 0;
 	float xposavg = 0;
 
-	int neigh = 0;
-	//get types to shared memory TO-DO
+	int cohNeigh = 0;
+	bool alignNeigh = 0,
+		 sepNeigh = 0,
+	     avoidingObst = 0;
 
 	for (int i = 0; i < fishCount; i++)
 	{
@@ -75,48 +86,43 @@ __global__ void simulateStepKernel(FishData fd, FishTypes ft, int fishCount, Mou
 
 		float distsq = dx * dx + dy * dy;
 
-		if (distsq < sepRangesq)
+		if (distsq <= sepRangesq)
 		{
-			closedx += dx;
-			closedy += dy;
+			float dist = sqrt(distsq);
+			sepSpeed.vx += dx;
+			sepSpeed.vy += dy;
+
+			sepNeigh = true;
 		}
 
-		if (distsq < visionSq)
+		if (distsq <= alignSq)
 		{
-			xvelavg += fd.devVelX[i];
-			yvelavg += fd.devVelY[i];
+			alignSpeed.vx += fd.devVelX[i];
+			alignSpeed.vy += fd.devVelY[i];
+
+			alignNeigh = true;
+		}
+
+		if (distsq <= cohSq)
+		{
 			xposavg += otherx;
 			yposavg += othery;
 
-			neigh++;
+			cohNeigh++;
 		}
-
 	}
 
-	if (neigh > 0)
+	if (cohNeigh > 0)
 	{
-		xposavg /= (float)neigh;
-		yposavg /= (float)neigh;
-		xvelavg /= (float)neigh;
-		yvelavg /= (float)neigh;
+		xposavg /= (float)cohNeigh;
+		yposavg /= (float)cohNeigh;
 
-		vx += (xposavg - posx) * cohFactor + (xvelavg - vx) * aligFactor;
-		vy += (yposavg - posy) * cohFactor + (yvelavg - vy) * aligFactor;
+		xposavg -= posx;
+		yposavg -= posy;
+
+		cohSpeed = Speed2D(xposavg, yposavg);
 	}
 
-
-	vx += closedx * sepFactor;
-	vy += closedy * sepFactor;
-
-	//avoid edges
-	if (posx < -95.f)
-		vx += ft.obstacleAvoidanceFactor[type];
-	if (posx > 95.f)
-		vx -= ft.obstacleAvoidanceFactor[type];
-	if (posy < -95.f)
-		vy += ft.obstacleAvoidanceFactor[type];
-	if (posy > 95.f)
-		vy -= ft.obstacleAvoidanceFactor[type];
 
 	if (mousePos.avoid)
 	{
@@ -125,30 +131,41 @@ __global__ void simulateStepKernel(FishData fd, FishTypes ft, int fishCount, Mou
 
 		float dist = mdy * mdy + mdx * mdx;
 
-		if (dist < 25)
+		if (dist < 40000)
 		{
-			vx += mdx * ft.obstacleAvoidanceFactor[type];
-			vy += mdy * ft.obstacleAvoidanceFactor[type];
+			obstAvSpeed.vx += mdx;
+			obstAvSpeed.vy += mdy;
+			avoidingObst = true;
 		}
 	}
 
-	//if (idx==70)
-	//	printf("%f %f %f %f %d\n", posx, posy, vx, vy, idx);
+	float minSpeed = ft.minSpeed[type];
+	float maxSpeed = ft.maxSpeed[type];
 
-	float minspeed = ft.minSpeed[type];
-	float maxspeed = ft.maxSpeed[type];
+	alignSpeed = steerTowards(alignSpeed, vx, vy, maxSpeed, 0.2f);
+	cohSpeed = steerTowards(cohSpeed, vx, vy, maxSpeed, 0.2f);
+	sepSpeed = steerTowards(sepSpeed, vx, vy, maxSpeed, 0.2f);
+	obstAvSpeed = steerTowards(obstAvSpeed, vx, vy, maxSpeed, 0.2f);
 
-	float speed = sqrt(vx * vx + vy * vy);
+	Speed2D sum = Speed2D(vx, vy);
 
-	vx /= speed;
-	vy /= speed;
+	//we add steering only when needed 
+	if (alignNeigh)
+		sum.addScaled(alignSpeed, alignFactor);
+	if (cohNeigh)
+		sum.addScaled(cohSpeed, cohFactor);
+	if (sepNeigh)
+		sum.addScaled(sepSpeed, sepFactor);
+	if(avoidingObst)
+		sum.addScaled(obstAvSpeed, obstAvFactor);
 
-	speed = clamp(speed, minspeed, maxspeed);
+	sum.max(maxSpeed);
+	sum.min(minSpeed);
 
-	fd.devTempVelX[idx] = vx * speed;
-	fd.devTempVelY[idx] = vy * speed;
+	fd.devColorRGBA[idx] = ft.color[type];
 
-	//printf("%d\n", idx);
+	fd.devTempVelX[idx] = sum.vx;
+	fd.devTempVelY[idx] = sum.vy;
 }
 
 __global__ void updatePositionKernel(FishData fd, int fishCount)
@@ -161,17 +178,68 @@ __global__ void updatePositionKernel(FishData fd, int fishCount)
 	float vx = fd.devTempVelX[idx];
 	float vy = fd.devTempVelY[idx];
 
+	float posx = fd.devPosX[idx] + vx;
+	float posy = fd.devPosY[idx] + vy;
+
+
+	if (posx > 1000 || posx < -1000)
+	{
+		vx = -vx;
+	}
+	if (posy > 1000 || posy < -1000)
+	{
+		vy = -vy;
+	}
+
 	fd.devVelX[idx] = vx;
 	fd.devVelY[idx] = vy;
 
-	fd.devPosX[idx] = clamp(vx + fd.devPosX[idx], -100, 100);
-	fd.devPosY[idx] = clamp(vy + fd.devPosY[idx], -100, 100);
+	fd.devPosX[idx] = clamp(posx, -1000, 1000);
+	fd.devPosY[idx] = clamp(posy, -1000, 1000);
 
 
 
 	//printf("%f %f %f %f %f %f %d\n", fd.devTempVelX[idx], fd.devTempVelY[idx], fd.devVelX[idx], fd.devVelY[idx], fd.devPosX[idx], fd.devPosY[idx], idx);
 }
 
-__device__ float clamp(float value, float minVal, float maxVal) {
+__device__ float clamp(float value, float minVal, float maxVal)
+{
 	return fminf(fmaxf(value, minVal), maxVal);
+}
+
+__device__ Speed2D capSpeed(Speed2D speed2d, float minSpeed, float maxSpeed)
+{
+	float vx = speed2d.vx;
+	float vy = speed2d.vy;
+
+	float speed = sqrt(vx * vx + vy * vy);
+	if (speed > 0)
+	{
+		vx /= speed;
+		vy /= speed;
+	}
+
+	speed = clamp(speed, minSpeed, maxSpeed);
+
+	return Speed2D(vx * speed, vy * speed);
+}
+
+__device__ Speed2D steerTowards(Speed2D speed2d, float vx, float vy, float maxSpeed, float steeringForce)
+{
+	speed2d.setMag(maxSpeed);
+	speed2d.vx -= vx;
+	speed2d.vy -= vy;
+	speed2d.max(steeringForce);
+
+	return speed2d;
+}
+
+__global__ void pauseInteractionsKernel(FishData fd, FishTypes ft, int fishCount)
+{
+	int idx = threadIdx.x + blockDim.x * blockIdx.x;
+
+	if (idx >= fishCount)
+		return;
+
+	fd.devColorRGBA[idx] = ft.color[fd.type[idx]];
 }

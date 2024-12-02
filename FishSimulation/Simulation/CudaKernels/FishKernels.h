@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <curand.h>
 #include <curand_kernel.h>
+#include <algorithm>
 #include "../SimulationDataStructures/FishContainers.h"
 #include "../SimulationDataStructures/MousePos.h"
 #include "../SimulationDataStructures/Speed2D.h"
@@ -23,7 +24,7 @@ inline void gpuAssert(cudaError_t code, const char* file, int line, bool abort =
 	}
 }
 
-__global__ void randomizePositionKernel(FishData fd, int count, int offset);
+__global__ void randomizePositionKernel(FishData fd, FishTypes ft, int count, int offset);
 
 __global__ void simulateStepKernel(FishData fd, FishTypes ft, int fishCount, MousePos pos);//pewnie jakis grid object
 
@@ -31,6 +32,10 @@ __global__ void setFishTypeKernel(FishData fd, short type, int count, int offset
 
 __global__ void updatePositionKernel(FishData fd, int fishCount);
 
+__global__ void pauseInteractionsKernel(FishData fd, FishTypes ft, int fishCount);
+
 __device__ float clamp(float value, float minVal, float maxVal);
 
 __device__ Speed2D capSpeed(Speed2D speed2d, float minSpeed, float maxSpeed);
+
+__device__ Speed2D steerTowards(Speed2D speed2d, float vx, float vy, float maxSpeed, float steeringForce);

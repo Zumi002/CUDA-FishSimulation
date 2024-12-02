@@ -11,34 +11,37 @@ struct FishData
 	float* devTempVelX;
 	float* devTempVelY;
 	short* type;
+	int*   devColorRGBA;
 };
 
 struct FishTypes
 {
 	float* alignRange;
-	float* coheherentRange;
+	float* coherentRange;
 	float* separateRange;
 
 	float* alignFactor;
 	float* coherentFactor;
-	float* separationFactor;
+	float* separateFactor;
 	float* obstacleAvoidanceFactor;
 	float* maxSpeed;
 	float* minSpeed;
+	int*   color;
 };
 
 struct FishType
 {
-	float alignRange = 5.f;
-	float coheherentRange = 5.f;
-	float separateRange = 2.f;
+	float alignRange = 25.0f;
+	float coherentRange = 25.0f;
+	float separateRange = 20.f;
 
-	float alignFactor = 0.1f;
-	float coherentFactor = 0.01f;
-	float separationFactor = 0.1f;
-	float obstacleAvoidanceFactor = 0.2f;
-	float maxSpeed = 0.5f;
-	float minSpeed = 0.05f;
+	float alignFactor = 1.1f;
+	float coherentFactor = 1.0f;
+	float separateFactor = 1.1f;
+	float obstacleAvoidanceFactor = 2.0f;
+	float maxSpeed = 3.0f;
+	float minSpeed = 1.0f;
+	int color = 0x00F0FFFF; //RRGGBBAA
 };
 
 struct FishVBOs
@@ -47,5 +50,5 @@ struct FishVBOs
 	GLuint posYVBO = 0;
 	GLuint velXVBO = 0;
 	GLuint velYVBO = 0;
-	//colorVBO?
+	GLuint colorVBO = 0;
 };

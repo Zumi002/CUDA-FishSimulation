@@ -91,7 +91,7 @@
       <TargetMachinePlatform>64</TargetMachinePlatform>
     </CudaCompile>
     <CudaLink>
-      <AdditionalDependencies>$(ProjectDir)\Libraries\lib\x64\SDL2.lib;$(ProjectDir)\Libraries\lib\x64\SDL2main.lib;$(ProjectDir)\Libraries\lib\x64\SDL2.dll;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </CudaLink>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -132,6 +132,7 @@
     <ClInclude Include="OpenGLUtils\Drawing\OpenGLDrawing.h" />
     <ClInclude Include="OpenGLUtils\GraphicsManager.h" />
     <ClInclude Include="OpenGLUtils\Utils\ShaderUtils.h" />
+    <ClInclude Include="resource.h" />
     <ClInclude Include="Simulation\CudaKernels\FishKernels.h" />
     <ClInclude Include="Simulation\FishSimulation.h" />
     <ClInclude Include="Simulation\SimulationDataStructures\FishContainers.h" />
@@ -140,6 +141,12 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="OpenGLUtils\Shaders\fragmentShader.glsl" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Resource.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="Resources\fish.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

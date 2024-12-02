@@ -4,6 +4,8 @@
 #include <glad/glad.h>
 #include <cuda_gl_interop.h>
 #include <string>
+#include <math.h>
+#include <algorithm>
 
 #include "SimulationDataStructures/FishContainers.h"
 #include "CudaKernels/FishKernels.h"
@@ -28,24 +30,34 @@ private:
 	FishTypes devfishTypes;
 	FishVBOs* vbos;
 
+	cudaGraphicsResource* crPosX,
+		* crPosY,
+		* crVelX,
+		* crVelY,
+		* crColor;
+
 	MousePos* mousePos = new MousePos(0,0,false);
 
 
 	void mapVBOs();
 	void allocFishTypes();
 	void syncFishTypes();
-	void addFishTypes(std::string fileName);
+	void unmapVBOs();
+	void freeFishTypes();
 public:
+	~FishSimulation();
 	void addFishType(FishType fishType);
 	int getMaxFishCount();
 	int getFishCount();
 	void setUpSimulation(FishVBOs* fishVBOs);
 	void simulationStep();
+	void pauseInteractions();
 	void randomizePos(int count, int offset);
 	int calcBlocksNeeded(int amount, int threadsCount);
 	void addFish(int amount, short type);
 	FishTypes* getFishTypes();
 	int getFishTypeCount();
 	MousePos* getMousePos();
+	void cleanUp();
 };
 

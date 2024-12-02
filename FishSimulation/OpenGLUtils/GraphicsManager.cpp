@@ -1,8 +1,9 @@
 #include "GraphicsManager.h"
 
 
-void GraphicsManager::CreateGraphicWindow(const std::string windowName)
+void GraphicsManager::createGraphicWindow(const std::string windowName)
 {
+	//Initializing sdl with opengl
 	if (SDL_Init(SDL_INIT_VIDEO) < 0)
 	{
 		fprintf(stderr, "SDL cannot initialize video subsytem\n");
@@ -16,9 +17,11 @@ void GraphicsManager::CreateGraphicWindow(const std::string windowName)
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 2);
 
+	// Creating window
 	graphicsWindow = SDL_CreateWindow("Fish simulation", 100, 100,
 		screenWidth, screenHeight,
 		SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
+
 	if (graphicsWindow == nullptr)
 	{
 		fprintf(stderr, "SDL window cannot be created\n");
@@ -37,16 +40,21 @@ void GraphicsManager::CreateGraphicWindow(const std::string windowName)
 		exit(EXIT_FAILURE);
 	}
 
-	LoadShaders(defaultVertexShaderFileName, defaultFragmentShaderFileName);
+	// Load shaders
+	loadDefaultShaders();
 
-	
-
+	// Create simulation
 	simulation = new FishSimulation();
+
+	// Make vbos
 	vbos = new FishVBOs();
-	ConfigureVAO(simulation->getMaxFishCount());
+	configureVAO(simulation->getMaxFishCount());
+
+	// Setup simulation
 	simulation->setUpSimulation(vbos);
 	mousePos = simulation->getMousePos();
 
+	// Setup ImGui
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO();
@@ -57,7 +65,7 @@ void GraphicsManager::CreateGraphicWindow(const std::string windowName)
 	ImGui_ImplOpenGL3_Init("#version 410");
 }
 
-void GraphicsManager::DrawFrame()
+void GraphicsManager::drawFrame()
 {
 	glDisable(GL_DEPTH_TEST);
 	glDisable(GL_CULL_FACE);
@@ -68,7 +76,7 @@ void GraphicsManager::DrawFrame()
 	glClearColor(0.086f, 0.086f, 0.113f, 1.f);
 	glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
-	GLuint graphicsPipeline = shManager->GetProgramObject();
+	GLuint graphicsPipeline = shManager->getProgramObject();
 
 	glUseProgram(graphicsPipeline);
 
@@ -92,13 +100,25 @@ void GraphicsManager::DrawFrame()
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
-void GraphicsManager::LoadShaders(const std::string vertexShaderFileName, const std::string fragmentShaderFileName)
+void GraphicsManager::loadShaders(const std::string vertexShaderFileName, const std::string fragmentShaderFileName)
 {
 	shManager = new ShaderManager(vertexShaderFileName, fragmentShaderFileName);
 }
 
-void GraphicsManager::CleanUp()
+void GraphicsManager::loadDefaultShaders()
 {
+	shManager = new ShaderManager();
+}
+
+void GraphicsManager::cleanUp()
+{
+	delete vbos;
+	delete simulation;
+
+	ImGui_ImplOpenGL3_Shutdown();
+	ImGui_ImplSDL2_Shutdown();
+	ImGui::DestroyContext();
+
 	SDL_DestroyWindow(graphicsWindow);
 	SDL_Quit();
 }
@@ -110,7 +130,7 @@ void GraphicsManager::checkGLError() {
 	}
 }
 
-void GraphicsManager::ConfigureVAO(int maxBoidCount)
+void GraphicsManager::configureVAO(int maxBoidCount)
 {
 	// Create and bind VAO first
 	glGenVertexArrays(1, &fishVAO);
@@ -128,25 +148,32 @@ void GraphicsManager::ConfigureVAO(int maxBoidCount)
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
 
+	// Add VBOs
 	makeVBO(vbos->posXVBO, 1, maxBoidCount);
 	makeVBO(vbos->posYVBO, 2, maxBoidCount);
 	makeVBO(vbos->velXVBO, 3, maxBoidCount);
 	makeVBO(vbos->velYVBO, 4, maxBoidCount);
+	makeVBO(vbos->colorVBO, 5, maxBoidCount);
 }
 
 void GraphicsManager::makeVBO(GLuint& vboRef, int attrID, int maxBoidCount)
 {
+	
 	glGenBuffers(1, &vboRef);
 	glBindBuffer(GL_ARRAY_BUFFER, vboRef);
 	glBufferData(GL_ARRAY_BUFFER, maxBoidCount * sizeof(float), nullptr, GL_DYNAMIC_DRAW);
-	glEnableVertexAttribArray(attrID); // Attribute location 4
+
+	//link vbo to vao
+	glEnableVertexAttribArray(attrID);
 	glVertexAttribPointer(attrID, 1, GL_FLOAT, GL_FALSE, 0, (void*)0);
 	glVertexAttribDivisor(attrID, 1);
 }
 
-void GraphicsManager::Input()
+void GraphicsManager::input()
 {
 	SDL_Event e;
+
+	// Process events
 	while (SDL_PollEvent(&e) != 0)
 	{
 		ImGui_ImplSDL2_ProcessEvent(&e);
@@ -156,14 +183,15 @@ void GraphicsManager::Input()
 		}
 	}
 
+	// Handle mouse input
 	int x = 0;
 	int y = 0;
 	Uint32 mouseEvent = SDL_GetMouseState(&x, &y);
 	if (mouseEvent & SDL_BUTTON(1))
 	{
 		mousePos->avoid = true;
-		mousePos->x = (float)x / screenWidth * 200 - 100;
-		mousePos->y = -(float)y / screenHeight*200+100;
+		mousePos->x = (float)x / screenWidth * 2000 - 1000;
+		mousePos->y = -(float)y / screenHeight * 2000 + 1000;
 	}
 	else
 	{
@@ -172,12 +200,18 @@ void GraphicsManager::Input()
 
 }
 
+
 void GraphicsManager::renderImGUI()
 {
+	if (simulation == nullptr)
+		return;
+
 	static int selectedFishType = 0;    // Currently selected fish type
 	static int fishToAdd = 100;         // Number of fish to add
 	static float fps = 0.0f;            // FPS display
-	static Uint32 oldTime = SDL_GetTicks();
+	static Uint32 oldTime = SDL_GetTicks(); 
+	static bool showHelp = false;		
+	static bool lang = false;
 
 	// Update FPS dynamically
 	Uint32 newTime = SDL_GetTicks();
@@ -186,11 +220,44 @@ void GraphicsManager::renderImGUI()
 
 	FishTypes* fishTypes = simulation->getFishTypes();
 
+
+	// imGui ui
 	ImGui::Begin("Fish Simulation Controls");
 
 	// FPS Counter
 	ImGui::Text("FPS: %.1f", fps);
+	ImGui::SameLine();
+	if (ImGui::Button(pause ? "Resume" : "Pause")) {
+		pause = !pause;
+	}
 
+	// Aligning help buttton to the right
+	float windowWidth = ImGui::GetWindowSize().x;     
+	float buttonWidth = ImGui::CalcTextSize("Help").x + ImGui::GetStyle().FramePadding.x * 2.0f; 
+	float padding = 20.f;
+	ImGui::SameLine(windowWidth - buttonWidth - padding);
+
+	// Button to show help popup
+	if (ImGui::Button("Help")) {
+		showHelp = true; 
+	}
+
+	if (showHelp) {
+		// Popup
+		ImGui::Begin("Help", &showHelp); 
+		if (ImGui::Button("EN"))
+		{
+			lang = false;
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("PL"))
+		{
+			lang = true;
+		}
+		ImGui::Separator();
+		ImGui::TextWrapped(lang?helpPopupStringPL.c_str() : helpPopupStringEN.c_str());
+		ImGui::End();
+	}
 	ImGui::Separator();
 
 	// Button to add fish
@@ -223,17 +290,39 @@ void GraphicsManager::renderImGUI()
 	if (selectedFishType >= 0 && selectedFishType < simulation->getFishTypeCount()) {
 		ImGui::Text("Adjust Parameters for Fish Type %d", selectedFishType);
 
-		ImGui::SliderFloat("Align Range", &fishTypes->alignRange[selectedFishType], 0.5f, 10.0f);
-		ImGui::SliderFloat("Coherent Range", &fishTypes->coheherentRange[selectedFishType], 0.5f, 10.0f);
-		ImGui::SliderFloat("Separate Range", &fishTypes->separateRange[selectedFishType], 0.5f, 10.0f);
+		ImGui::SliderFloat("Align Range", &fishTypes->alignRange[selectedFishType], 5.0f, 100.0f);
+		ImGui::SliderFloat("Coherent Range", &fishTypes->coherentRange[selectedFishType], 5.0f, 100.0f);
+		ImGui::SliderFloat("Separate Range", &fishTypes->separateRange[selectedFishType], 5.0f, 100.0f);
 
-		ImGui::SliderFloat("Align Factor", &fishTypes->alignFactor[selectedFishType], 0.0f, 1.0f);
-		ImGui::SliderFloat("Coherent Factor", &fishTypes->coherentFactor[selectedFishType], 0.0f, 0.1f);
-		ImGui::SliderFloat("Separation Factor", &fishTypes->separationFactor[selectedFishType], 0.0f, 1.0f);
+		ImGui::SliderFloat("Align Factor", &fishTypes->alignFactor[selectedFishType], 0.0f, 3.0f);
+		ImGui::SliderFloat("Coherent Factor", &fishTypes->coherentFactor[selectedFishType], 0.0f, 3.0f);
+		ImGui::SliderFloat("Separation Factor", &fishTypes->separateFactor[selectedFishType], 0.0f, 3.0f);
 
-		ImGui::SliderFloat("Obstacle Avoid Factor", &fishTypes->obstacleAvoidanceFactor[selectedFishType], 0.0f, 1.0f);
+		ImGui::SliderFloat("Obstacle Avoid Factor", &fishTypes->obstacleAvoidanceFactor[selectedFishType], 0.0f, 3.0f);
 		ImGui::SliderFloat("Max Speed", &fishTypes->maxSpeed[selectedFishType], 0.1f, 5.0f);
-		ImGui::SliderFloat("Min Speed", &fishTypes->minSpeed[selectedFishType], 0.01f, 1.0f);
+		ImGui::SliderFloat("Min Speed", &fishTypes->minSpeed[selectedFishType], 0.01f, fishTypes->maxSpeed[selectedFishType]);
+
+		if (fishTypes->maxSpeed[selectedFishType] < fishTypes->minSpeed[selectedFishType])
+		{
+			fishTypes->minSpeed[selectedFishType] = fishTypes->maxSpeed[selectedFishType];
+		}
+
+		static float color[4]; // RGBA values in [0, 1] format
+		int& fishColor = fishTypes->color[selectedFishType]; //0xRRGGBBAA format
+
+		// Convert RRGGBBAA to RGBA float
+		color[0] = ((fishColor >> 24) & 0xFF) / 255.0f; 
+		color[1] = ((fishColor >> 16) & 0xFF) / 255.0f;
+		color[2] = ((fishColor >> 8) & 0xFF) / 255.0f; 
+		color[3] = (fishColor & 0xFF) / 255.0f;         
+
+		if (ImGui::ColorEdit3("Fish Color", color)) {
+			// Convert RGBA float to RRGGBBAA int
+			fishColor = ((int)(color[0] * 255) << 24) |
+				((int)(color[1] * 255) << 16) |
+				((int)(color[2] * 255) << 8) |
+				((int)(color[3] * 255));
+		}
 	}
 
 	ImGui::Separator();
@@ -247,21 +336,40 @@ void GraphicsManager::renderImGUI()
 	ImGui::End();
 }
 
-void GraphicsManager::Run()
+void GraphicsManager::run()
 {
-	//mainloop
+	// Check for errors after initializing
 	checkGLError();
-	simulation->addFish(1000,0);
 
-	
+	// Add first fish
+	simulation->addFish(100, 0);
+
+	// Mainloop
 	while (!quit)
 	{
+		// Process input
+		input();
 		
-		Input();
-		DrawFrame();
-		simulation->simulationStep();
+		// Draw next frame
+		drawFrame();
+
+		// Run simulation
+		if (!pause)
+		{
+			simulation->simulationStep();
+		}
+		else
+		{
+			simulation->pauseInteractions();
+		}
+
+		// Check for cuda and opengl errors
 		gpuErrchk(cudaGetLastError());
 		checkGLError();
+
+		// Swap buffers
 		SDL_GL_SwapWindow(graphicsWindow);
 	}
+
+	cleanUp();
 }
