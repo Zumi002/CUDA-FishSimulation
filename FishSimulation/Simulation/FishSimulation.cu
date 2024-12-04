@@ -18,6 +18,7 @@ void FishSimulation::setUpSimulation(FishVBOs* fishVBOs)
 	allocFishTypes();
 	addFishType(FishType());
 	mapVBOs();
+	allocTempFishData();
 }
 
 void FishSimulation::mapVBOs()
@@ -47,11 +48,31 @@ void FishSimulation::mapVBOs()
 	gpuErrchk(cudaGraphicsMapResources(1, &crColor, 0));
 	gpuErrchk(cudaGraphicsResourceGetMappedPointer((void**)&fishData.devColorRGBA, nullptr, crColor));
 
-	gpuErrchk(cudaMalloc((void**)&fishData.type, maxFishCount * sizeof(short)));
+	
 	gpuErrchk(cudaMalloc((void**)&fishData.devTempVelX, maxFishCount * sizeof(float)));
 	gpuErrchk(cudaMalloc((void**)&fishData.devTempVelY, maxFishCount * sizeof(float)));
+	gpuErrchk(cudaMalloc((void**)&fishData.devType, maxFishCount * sizeof(short)));
+	gpuErrchk(cudaMalloc((void**)&fishData.devID, maxFishCount * sizeof(int)));
+	gpuErrchk(cudaMalloc((void**)&fishData.devGridCell, maxFishCount * sizeof(int)));
 	gpuErrchk(cudaMemset(fishData.devTempVelX, 0, maxFishCount * sizeof(float)));
 	gpuErrchk(cudaMemset(fishData.devTempVelY, 0, maxFishCount * sizeof(float)));
+}
+void FishSimulation::allocTempFishData()
+{
+	gpuErrchk(cudaMalloc((void**)&tempFishData.devPosX, maxFishCount * sizeof(float)));
+	gpuErrchk(cudaMalloc((void**)&tempFishData.devPosY, maxFishCount * sizeof(float)));
+	gpuErrchk(cudaMalloc((void**)&tempFishData.devVelX, maxFishCount * sizeof(float)));
+	gpuErrchk(cudaMalloc((void**)&tempFishData.devVelY, maxFishCount * sizeof(float)));
+	gpuErrchk(cudaMalloc((void**)&tempFishData.devTempVelX, maxFishCount * sizeof(float)));
+	gpuErrchk(cudaMalloc((void**)&tempFishData.devTempVelY, maxFishCount * sizeof(float)));
+	gpuErrchk(cudaMalloc((void**)&tempFishData.devType, maxFishCount * sizeof(short)))
+	gpuErrchk(cudaMalloc((void**)&tempFishData.devColorRGBA, maxFishCount * sizeof(int)));
+	gpuErrchk(cudaMalloc((void**)&tempFishData.devID, maxFishCount * sizeof(int)));
+	gpuErrchk(cudaMalloc((void**)&tempFishData.devGridCell, maxFishCount * sizeof(int)));
+	//no need for allocating color
+	//no need for allocating ID
+	//no need for allocating gridCell
+	
 }
 
 void FishSimulation::allocFishTypes()
@@ -128,7 +149,7 @@ void FishSimulation::addFish(int amount, short type)
 		int blocks = calcBlocksNeeded(amount, 512);
 
 		setFishTypeKernel << <blocks, 512 >> > (fishData, type, amount, fishCount);
-		cudaDeviceSynchronize();
+		gpuErrchk(cudaDeviceSynchronize());
 		randomizePos(amount, fishCount);
 		fishCount += amount;
 	}
@@ -154,7 +175,36 @@ void FishSimulation::randomizePos(int count, int offset)
 	int blocks = calcBlocksNeeded(count, 512);
 
 	randomizePositionKernel << <blocks, 512 >> > (fishData, devfishTypes, count, offset);
-	cudaDeviceSynchronize();
+	gpuErrchk(cudaDeviceSynchronize());
+}
+
+void FishSimulation::makeGrid()
+{
+	float gridSize = 1;
+	int blocks = calcBlocksNeeded(fishCount, 512);
+	for (int i = 0; i < fishTypesCount; i++)
+	{
+		gridSize = fmaxf((*fishTypes).alignRange[i], gridSize);
+		gridSize = fmaxf((*fishTypes).separateRange[i], gridSize);
+		gridSize = fmaxf((*fishTypes).coherentRange[i], gridSize);
+	}
+	collumns = ceilf((float)2*1000 / gridSize);
+	int rows = ceilf((float)2*1000 / gridSize); // 2* world size
+	cellCount = collumns * rows; 
+	if (devGridStart != nullptr)
+	{
+		gpuErrchk(cudaFree(devGridStart));
+	}
+	gpuErrchk(cudaMalloc(&devGridStart, cellCount*sizeof(int)));
+	gpuErrchk(cudaMemset(devGridStart, -1, cellCount * sizeof(int)));
+	preGridMakingKernel << <blocks, 512 >> > (fishData, tempFishData, fishCount, devGridStart, gridSize, cellCount, collumns);
+	gpuErrchk(cudaDeviceSynchronize());
+	auto devPointerGridCell = thrust::device_pointer_cast(fishData.devGridCell);
+	auto devPointerDevID = thrust::device_pointer_cast(fishData.devID);
+	thrust::sort_by_key(devPointerGridCell, devPointerGridCell + fishCount, devPointerDevID);
+	gpuErrchk(cudaDeviceSynchronize());
+	postGridMakingKernel << <blocks, 512 >> > (fishData, tempFishData, fishCount, devGridStart);
+	gpuErrchk(cudaDeviceSynchronize());
 }
 
 void FishSimulation::simulationStep()
@@ -162,9 +212,20 @@ void FishSimulation::simulationStep()
 	int blocks = calcBlocksNeeded(fishCount, 512);
 	syncFishTypes();
 	simulateStepKernel << <blocks, 512 >> > (fishData, devfishTypes, fishCount, *mousePos);
-	cudaDeviceSynchronize();
+	gpuErrchk(cudaDeviceSynchronize());
 	updatePositionKernel << <blocks, 512 >> > (fishData, fishCount);
-	cudaDeviceSynchronize();
+	gpuErrchk(cudaDeviceSynchronize());
+}
+
+void FishSimulation::simulationStepGrid()
+{
+	int blocks = calcBlocksNeeded(fishCount, 512);
+	syncFishTypes();
+	makeGrid();
+	simulateStepGridKernel << <blocks, 512 >> > (fishData, devfishTypes, fishCount, *mousePos, devGridStart, cellCount, collumns);
+	gpuErrchk(cudaDeviceSynchronize());
+	updatePositionKernel << <blocks, 512 >> > (fishData, fishCount);
+	gpuErrchk(cudaDeviceSynchronize());
 }
 
 void FishSimulation::pauseInteractions()
@@ -172,7 +233,7 @@ void FishSimulation::pauseInteractions()
 	int blocks = calcBlocksNeeded(fishCount, 512);
 	syncFishTypes();
 	pauseInteractionsKernel << <blocks, 512 >> > (fishData, devfishTypes, fishCount);
-	cudaDeviceSynchronize();
+	gpuErrchk(cudaDeviceSynchronize());
 }
 
 void FishSimulation::cleanUp()
@@ -198,9 +259,11 @@ void FishSimulation::unmapVBOs()
 	gpuErrchk(cudaGraphicsUnregisterResource(crColor));
 
 	//cudaFree remaining buffers
-	gpuErrchk(cudaFree(fishData.type));
+	gpuErrchk(cudaFree(fishData.devType));
 	gpuErrchk(cudaFree(fishData.devTempVelX));
 	gpuErrchk(cudaFree(fishData.devTempVelY));
+	gpuErrchk(cudaFree(fishData.devID));
+	gpuErrchk(cudaFree(fishData.devGridCell));
 }
 
 void FishSimulation::freeFishTypes()

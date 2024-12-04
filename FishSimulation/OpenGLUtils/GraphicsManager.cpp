@@ -290,9 +290,9 @@ void GraphicsManager::renderImGUI()
 	if (selectedFishType >= 0 && selectedFishType < simulation->getFishTypeCount()) {
 		ImGui::Text("Adjust Parameters for Fish Type %d", selectedFishType);
 
-		ImGui::SliderFloat("Align Range", &fishTypes->alignRange[selectedFishType], 5.0f, 100.0f);
-		ImGui::SliderFloat("Coherent Range", &fishTypes->coherentRange[selectedFishType], 5.0f, 100.0f);
-		ImGui::SliderFloat("Separate Range", &fishTypes->separateRange[selectedFishType], 5.0f, 100.0f);
+		ImGui::SliderFloat("Align Range", &fishTypes->alignRange[selectedFishType], 1.0f, 100.0f);
+		ImGui::SliderFloat("Coherent Range", &fishTypes->coherentRange[selectedFishType], 1.0f, 100.0f);
+		ImGui::SliderFloat("Separate Range", &fishTypes->separateRange[selectedFishType], 1.0f, 100.0f);
 
 		ImGui::SliderFloat("Align Factor", &fishTypes->alignFactor[selectedFishType], 0.0f, 3.0f);
 		ImGui::SliderFloat("Coherent Factor", &fishTypes->coherentFactor[selectedFishType], 0.0f, 3.0f);
@@ -356,7 +356,7 @@ void GraphicsManager::run()
 		// Run simulation
 		if (!pause)
 		{
-			simulation->simulationStep();
+			simulation->simulationStepGrid();
 		}
 		else
 		{

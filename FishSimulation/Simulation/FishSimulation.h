@@ -6,12 +6,14 @@
 #include <string>
 #include <math.h>
 #include <algorithm>
+#include <thrust/sort.h>
+#include <thrust/device_ptr.h>
 
 #include "SimulationDataStructures/FishContainers.h"
 #include "CudaKernels/FishKernels.h"
 #include "SimulationDataStructures/MousePos.h"
 
-#define MAX_FISH_COUNT 100000
+#define MAX_FISH_COUNT 1000000
 
 class FishSimulation
 {
@@ -25,7 +27,12 @@ private:
 
 	bool initialized = false;
 
+	int* devGridStart = nullptr;
+	int  cellCount = 0;
+	int	 collumns = 0;
+
 	FishData fishData;
+	FishData tempFishData;
 	FishTypes* fishTypes;
 	FishTypes devfishTypes;
 	FishVBOs* vbos;
@@ -44,6 +51,8 @@ private:
 	void syncFishTypes();
 	void unmapVBOs();
 	void freeFishTypes();
+	void makeGrid();
+	void allocTempFishData();
 public:
 	~FishSimulation();
 	void addFishType(FishType fishType);
@@ -51,6 +60,7 @@ public:
 	int getFishCount();
 	void setUpSimulation(FishVBOs* fishVBOs);
 	void simulationStep();
+	void simulationStepGrid();
 	void pauseInteractions();
 	void randomizePos(int count, int offset);
 	int calcBlocksNeeded(int amount, int threadsCount);

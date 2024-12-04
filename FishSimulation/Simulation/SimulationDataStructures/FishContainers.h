@@ -10,8 +10,10 @@ struct FishData
 	float* devVelY;
 	float* devTempVelX;
 	float* devTempVelY;
-	short* type;
+	short* devType;
 	int*   devColorRGBA;
+	int* devGridCell;
+	int* devID;
 };
 
 struct FishTypes

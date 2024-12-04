@@ -77,7 +77,7 @@ Controls:
 - Use the color picker to set the fish color
 - Use the 'Add new fish type' button to add new fish type
 
-- Hold RMB to make fish swim away from the mouse
+- Hold LMB to make fish swim away from the mouse
 
 )";
 
@@ -92,6 +92,6 @@ Sterowanie:
 - Uzyj color pickera, aby zmienic kolor ryb
 - Uzyj przycisku 'Add new fish type', aby dodac nowy typ ryb
 
-- Przytrzymaj PPM, aby sprawic by ryby odplywaly od myszy
+- Przytrzymaj LPM, aby sprawic by ryby odplywaly od myszy
 
 )";
