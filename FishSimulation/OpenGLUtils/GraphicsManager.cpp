@@ -267,7 +267,11 @@ void GraphicsManager::renderImGUI()
 			simulation->addFish(fishToAdd, selectedFishType);
 		}
 	}
-
+	std::string numberOfFishString = "Number of fish: ";
+	numberOfFishString += std::to_string(simulation->getFishCount());
+	float fishCountStringLength = ImGui::CalcTextSize(numberOfFishString.c_str()).x + ImGui::GetStyle().FramePadding.x * 2.0f;
+	ImGui::SameLine(windowWidth - fishCountStringLength);
+	ImGui::Text(numberOfFishString.c_str());
 	ImGui::Separator();
 
 	// Dropdown to select fish type

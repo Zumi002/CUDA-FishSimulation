@@ -34,11 +34,11 @@ __global__ void updatePositionKernel(FishData fd, int fishCount);
 
 __global__ void pauseInteractionsKernel(FishData fd, FishTypes ft, int fishCount);
 
-__global__ void preGridMakingKernel(FishData fd, FishData tempFd, int fishCount, int* gridStarts, float gridSize, int cellCount, int collumns);
+__global__ void preGridMakingKernel(FishData fd, FishData tempFd, int fishCount, float gridSize, int cellCount, int collumns);
 
-__global__ void postGridMakingKernel(FishData fd, FishData tempFd, int fishCount, int* gridStarts);
+__global__ void postGridMakingKernel(FishData fd, FishData tempFd, int fishCount, int* gridStarts, int* gridEnds);
 
-__global__ void simulateStepGridKernel(FishData fd, FishTypes ft, int fishCount, MousePos pos, int* gridStarts, int cellCount, int collumns);
+__global__ void simulateStepGridKernel(FishData fd, FishTypes ft, int fishCount, MousePos pos, int* gridStarts, int* gridEnds, int cellCount, int collumns);
 
 __device__ float clamp(float value, float minVal, float maxVal);
 

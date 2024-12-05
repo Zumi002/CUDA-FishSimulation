@@ -242,7 +242,7 @@ __global__ void pauseInteractionsKernel(FishData fd, FishTypes ft, int fishCount
 	fd.devColorRGBA[idx] = ft.color[fd.devType[idx]];
 }
 
-__global__ void preGridMakingKernel(FishData fd, FishData tempFd, int fishCount, int* gridStarts, float gridSize, int cellCount, int collumns)
+__global__ void preGridMakingKernel(FishData fd, FishData tempFd, int fishCount, float gridSize, int cellCount, int collumns)
 {
 	int idx = threadIdx.x + blockDim.x * blockIdx.x;
 
@@ -277,7 +277,7 @@ __global__ void preGridMakingKernel(FishData fd, FishData tempFd, int fishCount,
 
 }
 
-__global__ void postGridMakingKernel(FishData fd, FishData tempFd, int fishCount, int* gridStarts)
+__global__ void postGridMakingKernel(FishData fd, FishData tempFd, int fishCount, int* gridStarts, int* gridEnds)
 {
 	int idx = threadIdx.x + blockDim.x * blockIdx.x;
 
@@ -293,13 +293,22 @@ __global__ void postGridMakingKernel(FishData fd, FishData tempFd, int fishCount
 	fd.devType[idx] = tempFd.devType[tmpIdx];
 	fd.devGridCell[idx] = tempFd.devGridCell[tmpIdx];
 
-	if (idx == 0 || fd.devGridCell[idx - 1] != fd.devGridCell[idx])
+	if (idx == 0)
 	{
+		gridStarts[fd.devGridCell[idx]] = idx;
+	}
+	else if (idx == fishCount - 1)
+	{
+		gridEnds[fd.devGridCell[idx]] = fishCount;
+	}
+	else if (fd.devGridCell[idx - 1] != fd.devGridCell[idx])
+	{
+		gridEnds[fd.devGridCell[idx - 1]] = idx;
 		gridStarts[fd.devGridCell[idx]] = idx;
 	}
 }
 
-__global__ void simulateStepGridKernel(FishData fd, FishTypes ft, int fishCount, MousePos mousePos, int* gridStarts, int cellCount, int collumns)
+__global__ void simulateStepGridKernel(FishData fd, FishTypes ft, int fishCount, MousePos mousePos, int* gridStarts, int* gridEnds, int cellCount, int collumns)
 {
 	int idx = threadIdx.x + blockDim.x * blockIdx.x;
 
@@ -348,7 +357,7 @@ __global__ void simulateStepGridKernel(FishData fd, FishTypes ft, int fishCount,
 			if (k == -1)
 				continue;
 
-			while (k < fishCount && fd.devGridCell[k] == cell)
+			while (k<gridEnds[cell])
 			{
 				if (k == idx)
 				{

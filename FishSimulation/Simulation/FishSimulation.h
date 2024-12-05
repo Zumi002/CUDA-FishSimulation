@@ -24,10 +24,12 @@ private:
 	int fishCount;
 	int maxFishTypes = 10;
 	int fishTypesCount = 0;
+	int minGridSize = 1;
 
 	bool initialized = false;
 
 	int* devGridStart = nullptr;
+	int* devGridEnd = nullptr;
 	int  cellCount = 0;
 	int	 collumns = 0;
 
@@ -53,6 +55,9 @@ private:
 	void freeFishTypes();
 	void makeGrid();
 	void allocTempFishData();
+	void allocGridStartEnd();
+	void freeGridBuffers();
+	void freeTempFishData();
 public:
 	~FishSimulation();
 	void addFishType(FishType fishType);
