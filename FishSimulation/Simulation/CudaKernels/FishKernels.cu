@@ -89,8 +89,9 @@ __global__ void simulateStepKernel(FishData fd, FishTypes ft, int fishCount, Mou
 		if (distsq <= sepRangesq)
 		{
 			float dist = sqrt(distsq);
-			sepSpeed.vx += dx;
-			sepSpeed.vy += dy;
+			float d = 1 / (fmaxf(dist, 0.000001f)); //closer fish, bigger force
+			sepSpeed.vx += dx*d;
+			sepSpeed.vy += dy*d;
 
 			sepNeigh = true;
 		}
@@ -376,8 +377,9 @@ __global__ void simulateStepGridKernel(FishData fd, FishTypes ft, int fishCount,
 				if (distsq <= sepRangesq)
 				{
 					float dist = sqrt(distsq);
-					sepSpeed.vx += dx;
-					sepSpeed.vy += dy;
+					float d = 1 / (fmaxf(dist, 0.000001f)); //closer fish, bigger force
+					sepSpeed.vx += dx*d;
+					sepSpeed.vy += dy*d;
 
 					sepNeigh = true;
 				}

@@ -87,7 +87,7 @@ Witaj w Symulacji ryb!
 Sterowanie:
 - Zatrzymaj symulacje za pomoca przyciksu 'Pause'
 - Uzyj przycisku 'Add fish', aby dodac wiecej ryb wybranego typu
-- Wybierz za pomoca menu typ ryb do modyfikacji 
+- Za pomoca menu wybierz typ ryb do modyfikacji 
 - Uzyj suwakow aby zmieniac parametry wybranego typu ryb
 - Uzyj color pickera, aby zmienic kolor ryb
 - Uzyj przycisku 'Add new fish type', aby dodac nowy typ ryb
